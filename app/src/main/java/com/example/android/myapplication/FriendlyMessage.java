@@ -1,13 +1,14 @@
 package com.example.android.myapplication;
 
+
+
 public class FriendlyMessage {
 
     private String text;
     private String name;
     private String photoUrl;
 
-    public FriendlyMessage() {
-    }
+    public FriendlyMessage(){}
 
     public FriendlyMessage(String text, String name, String photoUrl) {
         this.text = text;

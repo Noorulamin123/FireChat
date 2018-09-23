@@ -22,8 +22,9 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mFirebaseAuth = FirebaseAuth.getInstance();
         mFirebaseStorage = FirebaseStorage.getInstance();
+
         mMessageDatabaseReference = mFirebaseDatabase.getReference().child("messages");
         mChatPhotosStorageReference = mFirebaseStorage.getReference().child("chat_photos");
 
@@ -270,51 +272,39 @@ public class MainActivity extends AppCompatActivity {
         }
         else if (requestCode == RC_PHOTO_PICKER && resultCode == RESULT_OK){
             Uri selectedImageUri = data.getData();
-            assert selectedImageUri != null;
             final StorageReference photoRef = mChatPhotosStorageReference.child(selectedImageUri.getLastPathSegment());
-//                photoRef.putFile(selectedImageUri).continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
-//                    @Override
-//                    public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
-//                        if(!task.isSuccessful()){
-//                            throw task.getException();
-//                        }
-//                        return photoRef.getDownloadUrl();
-//                    }
-//                }).addOnCompleteListener(new OnCompleteListener<Uri>() {
-//                    @Override
-//                    public void onComplete(@NonNull Task<Uri> task) {
-//                        if(task.isSuccessful()){
-//                            Uri downloadUrl = task.getResult();
-//                            FriendlyMessage friendlyMessage = new FriendlyMessage("Steve",mUsername,downloadUrl.toString());
-//                            mMessageDatabaseReference.push().setValue(friendlyMessage);
-//                        }
-//                        else {
-//                            Toast.makeText(MainActivity.this,"Upload failed",Toast.LENGTH_SHORT).show();
-//                        }
-//                    }
-//                });
-//
-//
 
-            UploadTask uploadTask= photoRef.putFile(selectedImageUri);
 
-// Register observers to listen for when the download is done or if it fails
-            uploadTask.addOnFailureListener(new OnFailureListener() {
+            UploadTask uploadTask = photoRef.putFile(selectedImageUri);
+
+            Task<Uri> urlTask = uploadTask.continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
                 @Override
-                public void onFailure(@NonNull Exception exception) {
-                    // Handle unsuccessful uploads
-                    Toast.makeText(MainActivity.this,"Upload failed ",Toast.LENGTH_SHORT).show();
-                }
-            }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                        // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
-                        // ...
-                        String downloadUrl =taskSnapshot.getMetadata().getReference().getDownloadUrl().toString();
-                        FriendlyMessage friendlyMessage = new FriendlyMessage(null,mUsername,downloadUrl);
-                        mMessageDatabaseReference.push().setValue(friendlyMessage);
+                public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
+                    if (!task.isSuccessful()) {
+                        throw task.getException();
                     }
-                });
+
+                    // Continue with the task to get the download URL
+                    return photoRef.getDownloadUrl();
+                }
+            }).addOnCompleteListener(new OnCompleteListener<Uri>() {
+                @Override
+                public void onComplete(@NonNull Task<Uri> task) {
+                    if (task.isSuccessful()) {
+                        Uri downloadUri = task.getResult();
+                        FriendlyMessage friendlyMessage = new FriendlyMessage(null,mUsername,downloadUri.toString());
+                        mMessageDatabaseReference.push().setValue(friendlyMessage);
+                    } else {
+                        // Handle failures
+                        // ...
+                        Toast.makeText(MainActivity.this,"Upload Failed!",Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+
+
+
+
         }
     }
 }
