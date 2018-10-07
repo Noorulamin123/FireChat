@@ -9,9 +9,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.InputFilter;
-import android.text.Spanned;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -20,14 +18,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
+import com.firebase.ui.auth.data.model.User;
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -36,8 +32,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.auth.*;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
-import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -45,10 +39,7 @@ import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -62,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     private ListView mMessageListView;
+    private ListView mUserListView;
     private MessageAdapter mMessageAdapter;
     private ImageButton mPhotoPickerButton;
     private EditText mMessageEditText;
@@ -112,7 +104,6 @@ public class MainActivity extends AppCompatActivity {
         mMessageAdapter = new MessageAdapter(this, R.layout.item_message, friendlyMessages);
         mMessageListView.setAdapter(mMessageAdapter);
 
-        mProgressBar.setVisibility(ProgressBar.INVISIBLE);
 
         mPhotoPickerButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -171,7 +162,9 @@ public class MainActivity extends AppCompatActivity {
                                             new AuthUI.IdpConfig.GoogleBuilder().build()))
                                     .build(),
                             RC_SIGN_IN);
-                    mUserDatabaseReference.push().setValue(new User(user.getUid(),user.getDisplayName()));
+
+                    Users users1= new Users(user.getUid(),user.getDisplayName());
+                    mUserDatabaseReference.push().setValue(users1);
                 }
                 }
             };
@@ -240,15 +233,18 @@ public class MainActivity extends AppCompatActivity {
                 public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                     FriendlyMessage mFriendlyMessage=dataSnapshot.getValue(FriendlyMessage.class);
                     mMessageAdapter.add(mFriendlyMessage);
+//                    mMessageAdapter.setName(mUsername,mFriendlyMessage);////
                 }
 
                 @Override
                 public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 }
 
+
                 @Override
                 public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
                 }
+
 
                 @Override
                 public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
@@ -306,7 +302,6 @@ public class MainActivity extends AppCompatActivity {
                         Uri downloadUri = task.getResult();
                         FriendlyMessage friendlyMessage = new FriendlyMessage(null,mUsername,downloadUri.toString());
                         mMessageDatabaseReference.push().setValue(friendlyMessage);
-
                     }
                     else {
                         Toast.makeText(MainActivity.this,"Upload Failed!",Toast.LENGTH_SHORT).show();
