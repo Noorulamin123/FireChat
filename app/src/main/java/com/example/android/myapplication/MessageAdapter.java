@@ -53,7 +53,7 @@ public class MessageAdapter extends ArrayAdapter<FriendlyMessage> {
             if (isPhoto) {
                 messageTextView.setVisibility(View.GONE);
                 photoImageView.setVisibility(View.VISIBLE);
-                photoImageView.setBackgroundColor(Color.YELLOW);
+//                photoImageView.setBackgroundColor(Color.YELLOW);
 
                 Glide.with(photoImageView.getContext()).load(message.getPhotoUrl())
                         .into(photoImageView);
