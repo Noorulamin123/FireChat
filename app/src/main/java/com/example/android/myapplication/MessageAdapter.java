@@ -87,6 +87,8 @@ public class MessageAdapter extends ArrayAdapter<FriendlyMessage> {
 //            }
 //            authorTextView1.setText(message.getName());
 //        }
+
+
         return convertView;
     }
 }

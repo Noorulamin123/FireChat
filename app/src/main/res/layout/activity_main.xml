@@ -10,7 +10,7 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.example.android.myapplication.MainActivity">
 
-    <ListView
+    <com.baoyz.swipemenulistview.SwipeMenuListView
         android:id="@+id/messageListView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

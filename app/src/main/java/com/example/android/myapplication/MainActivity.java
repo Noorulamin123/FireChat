@@ -1,7 +1,10 @@
 package com.example.android.myapplication;
 
 
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -10,6 +13,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -17,9 +21,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.baoyz.swipemenulistview.SwipeMenu;
+import com.baoyz.swipemenulistview.SwipeMenuCreator;
+import com.baoyz.swipemenulistview.SwipeMenuItem;
+import com.baoyz.swipemenulistview.SwipeMenuListView;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.data.model.User;
 import com.google.android.gms.tasks.Continuation;
@@ -32,6 +42,7 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.auth.*;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -43,6 +54,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+
     private static final String TAG = "MainActivity";
 
     public static final String ANONYMOUS = "anonymous";
@@ -52,9 +64,12 @@ public class MainActivity extends AppCompatActivity {
     private static final int RC_PHOTO_PICKER =  2;
 
 
-    private ListView mMessageListView;
-    private ListView mUserListView;
+    private SwipeMenuListView mMessageListView;
+//    private ListView mUserListView;
     private MessageAdapter mMessageAdapter;
+
+    private  MessageAdapter mItem;
+
     private ImageButton mPhotoPickerButton;
     private EditText mMessageEditText;
     private Button mSendButton;
@@ -74,6 +89,8 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth.AuthStateListener mAuthStateListener;
 //    private FirebaseRemoteConfig mFirebaseRemoteConfig;
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,6 +98,10 @@ public class MainActivity extends AppCompatActivity {
 
         mUsername = ANONYMOUS;
 
+
+        ImageView photoImageView = (ImageView) findViewById(R.id.photoImageView);
+        TextView messageTextView = (TextView) findViewById(R.id.messageTextView);
+        TextView authorTextView = (TextView) findViewById(R.id.nameTextView);
 
 
 
@@ -95,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-        mMessageListView = (ListView) findViewById(R.id.messageListView);
+        mMessageListView = (SwipeMenuListView) findViewById(R.id.messageListView);
         mPhotoPickerButton = (ImageButton) findViewById(R.id.photoPickerButton);
         mMessageEditText = (EditText) findViewById(R.id.messageEditText);
         mSendButton = (Button) findViewById(R.id.sendButton);
@@ -169,15 +190,61 @@ public class MainActivity extends AppCompatActivity {
                 }
             };
 
-//        FirebaseRemoteConfigSettings configSettings = new FirebaseRemoteConfigSettings
-//                .Builder()
-//                .setDeveloperModeEnabled(BuildConfig.DEBUG)
-//                .build();
-//        mFirebaseRemoteConfig.setConfigSettings(configSettings);
-//        Map<String, Object> defaultConfigMap = new HashMap<>();
-//        defaultConfigMap.put(FRIENDLY_MSG_LENGTH_KEY, DEFAULT_MSG_LENGTH_LIMIT);
-//        mFirebaseRemoteConfig.setDefaults(defaultConfigMap);
-//        fetchConfig();
+
+        SwipeMenuCreator creator = new SwipeMenuCreator() {
+
+            @Override
+            public void create(SwipeMenu menu) {
+//                // create "open" item
+//                SwipeMenuItem openItem = new SwipeMenuItem(
+//                        getApplicationContext());
+//                // set item background
+//                openItem.setBackground(new ColorDrawable(Color.rgb(0xC9, 0xC9,
+//                        0xCE)));
+//                // set item width
+//                openItem.setWidth(170);
+//                // set item title
+//                openItem.setTitle("Open");
+//                // set item title fontsize
+//                openItem.setTitleSize(18);
+//                // set item title font color
+//                openItem.setTitleColor(Color.WHITE);
+//                // add to menu
+//                menu.addMenuItem(openItem);
+
+                // create "delete" item
+                SwipeMenuItem deleteItem = new SwipeMenuItem(
+                        getApplicationContext());
+                // set item background
+                deleteItem.setBackground(new ColorDrawable(Color.rgb(0xF9,
+                        0x3F, 0x25)));
+                // set item width
+                deleteItem.setWidth(170);
+                // set a icon
+                deleteItem.setIcon(R.drawable.ic_delete);
+                // add to menu
+                menu.addMenuItem(deleteItem);
+            }
+        };
+
+// set creator
+        mMessageListView.setMenuCreator(creator);
+
+
+        mMessageListView.setOnMenuItemClickListener(new SwipeMenuListView.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(int position, SwipeMenu menu, int index) {
+                switch (index) {
+                    case 0:
+                        Toast.makeText(MainActivity.this,"Deleted",Toast.LENGTH_SHORT).show();
+//                        mItem = (MessageAdapter) mMessageListView.getAdapter();
+//                        Query query = mMessageDatabaseReference.orderByKey();
+                        break;
+                }
+                // false : close the menu; true : not close the menu
+                return false;
+            }
+        });
     }
 
 
@@ -243,6 +310,8 @@ public class MainActivity extends AppCompatActivity {
 
                 @Override
                 public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+//                    FriendlyMessage mFriendlyMessage=dataSnapshot.getValue(FriendlyMessage.class);
+//                    mMessageAdapter.add(mFriendlyMessage);
                 }
 
 
@@ -310,33 +379,5 @@ public class MainActivity extends AppCompatActivity {
             });
         }
     }
-
-//    public void fetchConfig(){
-//        long cacheExpiration = 3600;
-//        if (mFirebaseRemoteConfig.getInfo().getConfigSettings().isDeveloperModeEnabled()){
-//            cacheExpiration = 0;
-//        }
-//        mFirebaseRemoteConfig.fetch(cacheExpiration)
-//                .addOnSuccessListener(new OnSuccessListener<Void>() {
-//                    @Override
-//                    public void onSuccess(Void aVoid) {
-//                        mFirebaseRemoteConfig.activateFetched();
-//                        applyRetrievedLengthLimit();
-//                    }
-//                }).addOnFailureListener(new OnFailureListener() {
-//                    @Override
-//                    public void onFailure(@NonNull Exception e) {
-//                        Log.d(TAG,"Error fetching config", e);
-//                        applyRetrievedLengthLimit();
-//                    }
-//                });
-//    }
-//
-//    private void applyRetrievedLengthLimit() {
-//        long friendly_msg_length = mFirebaseRemoteConfig.getLong(FRIENDLY_MSG_LENGTH_KEY);
-//        mMessageEditText.setFilters(new InputFilter[]{new InputFilter.LengthFilter(((int)friendly_msg_length))});
-//        Log.d(TAG, FRIENDLY_MSG_LENGTH_KEY + " = " + friendly_msg_length);
-//
-//    }
 
 }
