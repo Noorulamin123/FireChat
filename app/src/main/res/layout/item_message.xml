@@ -11,6 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="0"
         android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="@color/colorPrimaryDark"
         tools:text="Name:" />
 
     <ImageView
