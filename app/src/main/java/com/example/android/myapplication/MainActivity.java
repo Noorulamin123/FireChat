@@ -96,6 +96,8 @@ public class MainActivity extends AppCompatActivity {
         TextView authorTextView = (TextView) findViewById(R.id.nameTextView);
 
 
+        //for enabling disk persistence
+        FirebaseDatabase.getInstance().setPersistenceEnabled(true);
 
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mFirebaseAuth = FirebaseAuth.getInstance();
