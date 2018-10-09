@@ -1,7 +1,6 @@
 package com.example.android.myapplication;
 
 
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -13,7 +12,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
-import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -22,7 +20,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -31,9 +28,10 @@ import com.baoyz.swipemenulistview.SwipeMenuCreator;
 import com.baoyz.swipemenulistview.SwipeMenuItem;
 import com.baoyz.swipemenulistview.SwipeMenuListView;
 import com.firebase.ui.auth.AuthUI;
-import com.firebase.ui.auth.data.model.User;
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -42,7 +40,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.auth.*;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -59,7 +56,6 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String ANONYMOUS = "anonymous";
     public static final int DEFAULT_MSG_LENGTH_LIMIT = 1000;
-//    public static final String FRIENDLY_MSG_LENGTH_KEY = "friendly_msg_length";
     public static final int RC_SIGN_IN = 1;
     private static final int RC_PHOTO_PICKER =  2;
 
@@ -67,8 +63,6 @@ public class MainActivity extends AppCompatActivity {
     private SwipeMenuListView mMessageListView;
 //    private ListView mUserListView;
     private MessageAdapter mMessageAdapter;
-
-    private  MessageAdapter mItem;
 
     private ImageButton mPhotoPickerButton;
     private EditText mMessageEditText;
@@ -82,12 +76,10 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseDatabase mFirebaseDatabase;
     private FirebaseStorage mFirebaseStorage;
     private DatabaseReference mMessageDatabaseReference;
-    private DatabaseReference mUserDatabaseReference;
     private StorageReference mChatPhotosStorageReference;
     private ChildEventListener mChildEventListener;
     private FirebaseAuth mFirebaseAuth;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
-//    private FirebaseRemoteConfig mFirebaseRemoteConfig;
 
 
 
@@ -108,10 +100,8 @@ public class MainActivity extends AppCompatActivity {
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mFirebaseAuth = FirebaseAuth.getInstance();
         mFirebaseStorage = FirebaseStorage.getInstance();
-//        mFirebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
 
         mMessageDatabaseReference = mFirebaseDatabase.getReference().child("messages");
-        mUserDatabaseReference = mFirebaseDatabase.getReference().child("users");
         mChatPhotosStorageReference = mFirebaseStorage.getReference().child("chat_photos");
 
 
@@ -121,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
         mMessageEditText = (EditText) findViewById(R.id.messageEditText);
         mSendButton = (Button) findViewById(R.id.sendButton);
 
-        List<FriendlyMessage> friendlyMessages = new ArrayList<>();
+        final List<FriendlyMessage> friendlyMessages = new ArrayList<>();
         mMessageAdapter = new MessageAdapter(this, R.layout.item_message, friendlyMessages);
         mMessageListView.setAdapter(mMessageAdapter);
 
@@ -159,8 +149,10 @@ public class MainActivity extends AppCompatActivity {
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                FriendlyMessage friendlyMessage =new FriendlyMessage(mMessageEditText.getText().toString(),mUsername,null);
-                mMessageDatabaseReference.push().setValue(friendlyMessage);
+                DatabaseReference pushedPostRef = mMessageDatabaseReference.push();
+                String postId = pushedPostRef.getKey();
+                FriendlyMessage friendlyMessage =new FriendlyMessage(mMessageEditText.getText().toString(),mUsername,null,postId);
+                pushedPostRef.setValue(friendlyMessage);
                 mMessageEditText.setText("");
             }
         });
@@ -183,9 +175,6 @@ public class MainActivity extends AppCompatActivity {
                                             new AuthUI.IdpConfig.GoogleBuilder().build()))
                                     .build(),
                             RC_SIGN_IN);
-
-                    Users users1= new Users(user.getUid(),user.getDisplayName());
-                    mUserDatabaseReference.push().setValue(users1);
                 }
                 }
             };
@@ -195,23 +184,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void create(SwipeMenu menu) {
-//                // create "open" item
-//                SwipeMenuItem openItem = new SwipeMenuItem(
-//                        getApplicationContext());
-//                // set item background
-//                openItem.setBackground(new ColorDrawable(Color.rgb(0xC9, 0xC9,
-//                        0xCE)));
-//                // set item width
-//                openItem.setWidth(170);
-//                // set item title
-//                openItem.setTitle("Open");
-//                // set item title fontsize
-//                openItem.setTitleSize(18);
-//                // set item title font color
-//                openItem.setTitleColor(Color.WHITE);
-//                // add to menu
-//                menu.addMenuItem(openItem);
-
                 // create "delete" item
                 SwipeMenuItem deleteItem = new SwipeMenuItem(
                         getApplicationContext());
@@ -236,12 +208,22 @@ public class MainActivity extends AppCompatActivity {
             public boolean onMenuItemClick(int position, SwipeMenu menu, int index) {
                 switch (index) {
                     case 0:
-                        Toast.makeText(MainActivity.this,"Deleted",Toast.LENGTH_SHORT).show();
-//                        mItem = (MessageAdapter) mMessageListView.getAdapter();
-//                        Query query = mMessageDatabaseReference.orderByKey();
-                        break;
+                            FriendlyMessage friendlyMessage=mMessageAdapter.getItem(position);
+
+                            //Used to delete a message
+
+                            mMessageDatabaseReference.child(friendlyMessage.getKey()).removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    Toast.makeText(MainActivity.this,"Deleted",Toast.LENGTH_SHORT).show();
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Toast.makeText(MainActivity.this,"Failed",Toast.LENGTH_SHORT).show();
+                                }
+                            });
                 }
-                // false : close the menu; true : not close the menu
                 return false;
             }
         });
@@ -298,20 +280,22 @@ public class MainActivity extends AppCompatActivity {
             mChildEventListener = new ChildEventListener() {
                 @Override
                 public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                    FriendlyMessage mFriendlyMessage=dataSnapshot.getValue(FriendlyMessage.class);
+                    FriendlyMessage mFriendlyMessage = dataSnapshot.getValue(FriendlyMessage.class);
                     mMessageAdapter.add(mFriendlyMessage);
-//                    mMessageAdapter.setName(mUsername,mFriendlyMessage);////
                 }
 
                 @Override
                 public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                 }
 
-
                 @Override
                 public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
-//                    FriendlyMessage mFriendlyMessage=dataSnapshot.getValue(FriendlyMessage.class);
-//                    mMessageAdapter.add(mFriendlyMessage);
+                    String key = dataSnapshot.getKey();
+                    for (int i = 0;i<mMessageAdapter.getCount();i++){
+                        if (key.equals(mMessageAdapter.getItem(i).getKey())){
+                            mMessageAdapter.remove(mMessageAdapter.getItem(i));
+                        }
+                    }
                 }
 
 
@@ -369,8 +353,10 @@ public class MainActivity extends AppCompatActivity {
                 public void onComplete(@NonNull Task<Uri> task) {
                     if (task.isSuccessful()) {
                         Uri downloadUri = task.getResult();
-                        FriendlyMessage friendlyMessage = new FriendlyMessage(null,mUsername,downloadUri.toString());
-                        mMessageDatabaseReference.push().setValue(friendlyMessage);
+                        DatabaseReference pushedPostRef = mMessageDatabaseReference.push();
+                        String postId = pushedPostRef.getKey();
+                        FriendlyMessage friendlyMessage =new FriendlyMessage(null,mUsername,downloadUri.toString(),postId);
+                        pushedPostRef.setValue(friendlyMessage);
                     }
                     else {
                         Toast.makeText(MainActivity.this,"Upload Failed!",Toast.LENGTH_SHORT).show();

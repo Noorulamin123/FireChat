@@ -7,13 +7,24 @@ public class FriendlyMessage {
     private String text;
     private String name;
     private String photoUrl;
+    private String key;
+
 
     public FriendlyMessage(){}
 
-    public FriendlyMessage(String text, String name, String photoUrl) {
+    public FriendlyMessage(String text, String name, String photoUrl, String key) {
         this.text = text;
         this.name = name;
         this.photoUrl = photoUrl;
+        this.key = key;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 
     public String getText() {
